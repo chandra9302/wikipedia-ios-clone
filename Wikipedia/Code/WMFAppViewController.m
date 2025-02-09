@@ -253,6 +253,14 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
     self.editHintController = [[WMFEditHintController alloc] init];
 
     self.navigationItem.backButtonDisplayMode = UINavigationItemBackButtonDisplayModeGeneric;
+    
+    if (@available(iOS 18.0, *)) {
+        if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
+            self.mode = UITabBarControllerModeTabBar;
+        }
+    } else {
+        // Fallback on earlier versions
+    }
 }
 
 - (UIStatusBarStyle)preferredStatusBarStyle {
@@ -272,6 +280,11 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
 }
 
 - (BOOL)uiIsLoaded {
+    if (@available(iOS 18, *)) {
+        if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
+            return self.tabs.count > 0;
+        }
+    }
     return self.viewControllers.count > 0;
 }
 
@@ -319,14 +332,16 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
     self.delegate = self;
 
     UIViewController *mainViewController = nil;
+    NSString *mainTitle = nil;
 
     switch ([NSUserDefaults standardUserDefaults].defaultTabType) {
         case WMFAppDefaultTabTypeSettings:
             mainViewController = self.settingsViewController;
-            
+            mainTitle = [WMFCommonStrings settingsTitle];
             break;
         default:
             mainViewController = self.exploreViewController;
+            mainTitle = [WMFCommonStrings exploreTabTitle];
             break;
     }
 
@@ -336,8 +351,32 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
     WMFComponentNavigationController *nav4 = [self rootNavigationControllerWithRootViewController:[self recentArticlesViewController]];
     WMFComponentNavigationController *nav5 = [self rootNavigationControllerWithRootViewController:[self searchViewController]];
 
-    [self setViewControllers:@[nav1, nav2, nav3, nav4, nav5] animated:NO];
-
+    if (@available(iOS 18, *)) {
+        if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
+            self.tabs = @[
+                [[UITab alloc] initWithTitle:mainTitle image:NULL identifier:@"Main Tab" viewControllerProvider:^UIViewController *(UITab *tab) {
+                    return nav1;
+                }],
+                [[UITab alloc] initWithTitle:[WMFCommonStrings placesTabTitle] image:NULL identifier:@"Places Tab" viewControllerProvider:^UIViewController *(UITab *tab) {
+                    return nav2;
+                }],
+                [[UITab alloc] initWithTitle:[WMFCommonStrings savedTabTitle] image:NULL identifier:@"Saved Tab" viewControllerProvider:^UIViewController *(UITab *tab) {
+                    return nav3;
+                }],
+                [[UITab alloc] initWithTitle:[WMFCommonStrings historyTabTitle] image:NULL identifier:@"History Tab" viewControllerProvider:^UIViewController *(UITab *tab) {
+                    return nav4;
+                }],
+                [[UISearchTab alloc] initWithViewControllerProvider:^UIViewController *(UITab *tab) {
+                    return nav5;
+                }]
+            ];
+        } else {
+            [self setViewControllers:@[nav1, nav2, nav3, nav4, nav5] animated:NO];
+        }
+    } else {
+        [self setViewControllers:@[nav1, nav2, nav3, nav4, nav5] animated:NO];
+    }
+    
     [self updateUserInterfaceStyleOfNavigationControllersForCurrentTheme];
 
     BOOL shouldOpenAppOnSearchTab = [NSUserDefaults standardUserDefaults].wmf_openAppOnSearchTab;
