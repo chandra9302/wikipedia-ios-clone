@@ -370,6 +370,7 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
                     return nav5;
                 }]
             ];
+            self.mode = UITabBarControllerModeTabBar;
         } else {
             [self setViewControllers:@[nav1, nav2, nav3, nav4, nav5] animated:NO];
         }
